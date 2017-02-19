@@ -1,34 +1,137 @@
 --- 
-title: "A Minimal Book Example"
-author: "Yihui Xie"
+title: "Want population level inferences? Use sum-to-zero contrasts"
+author: "Andrew J. Tyre & Trevor Hefley"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
-output: bookdown::gitbook
 documentclass: book
+output:
+  bookdown::pdf_document2: default
+  bookdown::gitbook: default
 bibliography: [book.bib, packages.bib]
 biblio-style: apalike
 link-citations: yes
-github-repo: rstudio/bookdown-demo
-description: "This is a minimal example of using the bookdown package to write a book. The output format for this example is bookdown::gitbook."
+github-repo: atyre2/population-inference
+description: "This is a paper about using sum to zero contrasts to get population level inference."
 ---
 
-# Prerequisites
+# Introduction
 
-This is a _sample_ book written in **Markdown**. You can use anything that Pandoc's Markdown supports, e.g., a math equation $a^2 + b^2 = c^2$.
+A sum-to-zero contrast codes a categorical variable as deviations from a grand mean. Social scientists use them extensively. Should ecologists?[^CVpost]
 
-For now, you have to install the development versions of **bookdown** from Github:
+More accurately, should I tell my students in Ecological Statistics to use them? Sum-to-zero contrasts are conceptually similar to centering a continuous variable by subtracting the mean from your predictor variable prior to analysis. Discussions of centering often end up conflated with *scaling*, which is dividing your predictor variable by a constant, usually the standard deviation, prior to analysis.  *Always scaling* covariates prior to regression analysis is controversial advice. See for example [Andrew Gelman's blogpost and comments](http://andrewgelman.com/2009/07/11/when_to_standar/), or many crossvalidated questions [such as this one](http://stats.stackexchange.com/q/29781/12258) which has links to many others. There is a good reference as well as some useful discussion in the comments of [this question](http://stats.stackexchange.com/questions/179732/motivation-to-center-continuous-predictor-in-multiple-regression-for-sake-of-mul). In this post I focus on the effects of sum to zero contrasts for categorical variables and interactions with continuous variables.[^allthecode]
 
-```{r eval=FALSE}
-devtools::install_github("rstudio/bookdown")
+```{r setup, echo=FALSE, include=FALSE}
+# load necessary packages here
+knitr::opts_chunk$set(tidy=TRUE)
 ```
 
-Remember each Rmd file contains one and only one chapter, and a chapter is defined by the first-level heading `#`.
+Here is my summary of the pros and cons of centering drawn from those references above.
 
-To compile this example to PDF, you need to install XeLaTeX.
+* Centering continuous variables eliminates collinearity between 
+    interaction and polynomial terms and the individual covariates 
+    that make them up.
+* Centering does not affect inference about the covariates.
+* Centering can improve the interpretability of the coefficients in
+    a regression model, particularly because the intercept
+    represents the value of the response at the mean of the 
+    predictor variables.
+* Predicting out of sample data with a model fitted to centered 
+    data must be done carefully because the center of the out of
+    sample data will be different from the fitted data.
+* There may be some constant value other than the sample mean
+    that makes more sense based on domain knowledge.
 
-```{r include=FALSE}
-# automatically create a bib database for R packages
-knitr::write_bib(c(
-  .packages(), 'bookdown', 'knitr', 'rmarkdown'
-), 'packages.bib')
+To make the discussion concrete, let me demonstrate with an example of the interaction between a continuous covariate and a categorical one. In the following I refer to the effect of individual covariates outside the interaction as the "simple effect" of that covariate.
+
+```{r}
+data(iris)
+m0 <- lm(Sepal.Width~Sepal.Length*Species,data=iris)
+(summary_m0 <- summary(m0))
 ```
+
+The intercept of this model isn't directly interpretable because it gives the average width at a length of zero, which is impossible. In addition, both the intercept and simple effect of length represent the change in width for only one species, *setosa*. The default contrast in R estimates coefficients for $k - 1$ levels of a factor. In the simple effect of a factor each coefficient is the difference between the first level (estimated by the intercept), and the named level. In the above, `Speciesversicolor` has sepals that are 1.4 mm wider than *setosa*. The interaction coefficients
+such as `Sepal.Length:Speciesversicolor` tell us how much the effect of Sepal.Length in *versicolor* changes from that in *setosa*. So every mm of sepal length in versicolor increases sepal width by $0.8 - 0.48 = 0.32$ mm. 
+
+Maybe a plot will help.
+
+```{r}
+library(ggplot2)
+base_iris <- ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width)) + 
+  geom_point(aes(shape = Species)) + 
+  xlab("Sepal Length [mm]") + 
+  ylab("Sepal Width [mm]")
+library(broom)
+nd <- expand.grid(Sepal.Length = seq(-1, 8, 0.1),
+                  Species = factor(levels(iris$Species)))
+pred.0 <- augment(m0, newdata = nd)             
+base_iris + geom_line(aes(y = .fitted, linetype = Species), data = pred.0)
+```
+
+I did something rather silly looking there because I wanted to see where the curves cross x = 0. That is where the estimates for the intercept and simple effect of species are calculated. The intercept is negative, and the line for *setosa* crosses x = 0 well below y = 0. The simple effect estimates of Species are both positive, with *virginica* being larger, and indeed the line for *virginica* crosses x = 0 at the highest point. Similarly, the simple effect of length is the slope of the line for *setosa*, and it is larger than the slopes of the other two species because the estimated interactions are both negative. But not centering really makes things ugly for direct interpretation of the estimated coefficients. 
+
+Centering the continuous variable gives us
+
+```{r}
+library(dplyr) #Stay in the tidyverse! 
+iris <- iris %>% mutate(cSepal.Length=Sepal.Length - mean(Sepal.Length))
+m1 <- lm(Sepal.Width~cSepal.Length*Species,data=iris)
+(summary_m1 <- summary(m1))
+```
+
+Although the coefficients change because now the model estimates the differences between the species at the mean length, the t-statistics for the continuous covariate, including the interaction terms, do not change. The t-statistics for the intercept and simple effect of species do change.
+
+```{r}
+zapsmall(summary_m1$coefficients[,3] - summary_m0$coefficients[,3])
+```
+
+That's OK, because they are really testing something quite different from before. Just to confirm that the graph isn't different. 
+
+```{r}
+# remember to center the newdata values by the original mean!
+nd %>% filter(Sepal.Length > 4) %>% 
+  mutate(cSepal.Length = Sepal.Length - mean(iris$Sepal.Length)) -> nd
+pred.1 <- augment(m1, newdata = nd)
+base_iris + geom_line(aes(y = .fitted, linetype = Species), data = pred.1)
+```
+
+What happens if we use sum to zero contrasts for species?
+
+```{r}
+iris$szSpecies <- iris$Species
+contrasts(iris$szSpecies) <- contr.sum(3)
+m2 <- lm(Sepal.Width~cSepal.Length*szSpecies,data=iris)
+(summary_m2 <- summary(m2))
+```
+
+I can now directly interpret the intercept as the average width at the average length, averaged over species. Similarly the simple effect of length as the change in width averaged across species. This seems like a very useful set of coefficients to look at, particularly if my categorical covariate has many levels. 
+You might ask (I did), what do the categorical coefficients mean? They represent deviations from the mean intercept for each species. OK, you say (I did), then where's species *virginica*? After much head scratching, the answer is that it is the negative of the **sum** of the other two coefficients. 
+
+I just thought of something else. Are those "average" intercept and slope the same as what I would get if I only use `cSepal.Length`?
+
+```{r}
+m3 <- lm(Sepal.Width~cSepal.Length,data=iris)
+(summary_m3 <- summary(m3))
+```
+
+Whoa! It is not the same, in fact it is radically different. Totally different conclusion about the "average" effect. 
+
+```{r}
+m4 <- lm(Sepal.Width~cSepal.Length + szSpecies, data = iris)
+(summary_m4 <- summary(m4))
+```
+
+This is closer to the conclusion obtained with the interaction model. 
+
+I have seen assertions in some papers (particularly from social sciences), that using sum to zero contrasts (also called effects coding, I believe), allows the direct interpretation of lower order terms in an ANOVA table even in the presence of interactions. 
+
+```{r}
+anova(m2) # doesn't matter which model I use
+```
+
+If so, in this case I could say "Sepal Width differs significantly between species." I'm not sure I believe that. The ANOVA table is identical between all 3 models, whether I use sum-to-zero contrasts or not. Why should the interpretation differ if I just change the parameterization of the model? 
+
+Explaining treatment contrasts to students is a pain. I'm not sure that these are any easier. I have a few thoughts about the effects of sum-to-zero contrasts and model averaging, but that will have to wait for a different post. 
+
+[^allthecode]: All the code for this post, including that not shown, [can be found here](https://github.com/atyre2/atyre2.github.io/raw/master/_drafts/sum-to-zero-contrasts.Rmd).
+
+[^CVpost]: This stuff first appeared [as a question on CrossValidated](http://stats.stackexchange.com/questions/188852/centering-in-the-presence-of-interactions-with-categorical-predictors), but received no attention. Then AJT made it into [a blog post](http://atyre2.github.io/2016/09/03/sum-to-zero-contrasts.html), where it still received no attention! Upping the ante here ...
