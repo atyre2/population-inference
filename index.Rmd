@@ -1,20 +1,23 @@
 --- 
 title: "Want population level inferences? Use sum-to-zero contrasts"
 author: "Andrew J. Tyre & Trevor Hefley"
-date: "`r Sys.Date()`"
-site: bookdown::bookdown_site
-documentclass: book
+date: "`r format( Sys.Date(), '%B %d, %Y' )`"
 output:
-  bookdown::pdf_document2: default
-  bookdown::gitbook: default
+  bookdown::html_document2:
+    theme: lumen
+    highlight: tango
+    number_sections: FALSE
+    toc: TRUE
+    toc_float: TRUE
+    code_folding: hide
 bibliography: [book.bib, packages.bib]
 biblio-style: apalike
-link-citations: yes
+link-citations: TRUE
 github-repo: atyre2/population-inference
 description: "This is a paper about using sum to zero contrasts to get population level inference."
 ---
 
-# Introduction
+# Introduction {#intro}
 
 A sum-to-zero contrast codes a categorical variable as deviations from a grand mean. Social scientists use them extensively. Should ecologists?[^CVpost]
 
