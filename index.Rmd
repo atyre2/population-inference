@@ -55,45 +55,48 @@ Here is my summary of the pros and cons of centering drawn from those references
 
 To make the discussion concrete, let me demonstrate with an example of the interaction between a continuous covariate and a categorical one. In the following I refer to the effect of individual covariates outside the interaction as the "simple effect" of that covariate.
 
-```{r , warning=FALSE, results = "asis"}
+```{r , warning=FALSE, results = "hide"}
 data(iris)
 # flip the treatment contrast so coefficient labels match
-contrasts(iris$Species) <- contr.SAS(3)
+new_contrast <- contr.SAS(3)
+colnames(new_contrast) <- c("setosa", "versicolor")
+contrasts(iris$Species) <- new_contrast
+
 m0 <- lm(Sepal.Width~Sepal.Length*Species,data=iris)
 summary_m0 <- summary(m0)
 iris_centered <- iris %>% mutate(Sepal.Length=Sepal.Length - mean(Sepal.Length))
 m1 <- lm(Sepal.Width~Sepal.Length*Species,data=iris_centered)
 summary_m1 <- summary(m1)
 iris_csz <- iris_centered
-contrasts(iris_csz$Species) <- contr.sum(3)
+sum_contrast <- contr.sum(3)
+colnames(sum_contrast) <- colnames(new_contrast)
+contrasts(iris_csz$Species) <- sum_contrast
 m2 <- lm(Sepal.Width~Sepal.Length*Species,data=iris_csz)
 summary_m2 <- summary(m2)
-m3 <- lm(Sepal.Width~Sepal.Length,data=iris)
+m3 <- lm(Sepal.Width~Sepal.Length,data=iris_csz)
 summary_m3 <- summary(m3)
 m4 <- lm(Sepal.Width~Sepal.Length + Species, data = iris_csz)
 summary_m4 <- summary(m4)
 
 
-stargazer(m0, m1, m2, m3, m4,
-          title="Linear regressions of Sepal Width on species and Sepal Length for different parameterizations. The default treatment contrast has been changed to match the SAS default so that covariate labels match between the treatment and sum-to-zero contrasts.",
+tableout <- stargazer(m0, m1, m2, m3, m4,
+          type = "html",
           column.labels = c("Interaction", "Interaction and Centered", "Interaction, centered and sum-to-zero", "Length only", "Length and Species"),
           intercept.bottom = FALSE, intercept.top = TRUE,
           keep.stat = c("adj.rsq", "ser"),
           align=TRUE,
-          type = "html",
           style = "ajs" # "ajs"
 )
-#           summary.stats = FALSE,
-#            coef.style = "all.nostar")
-#write.mtable(mtable123, format = "LaTeX" )
-#sjt.lm(m0,m1)# You have to save the table in html format.
-#pander(mtable123)
-#htmltools::includeHTML("output.html")
-#knitr::kable(mtable123)
+
 ```
 
-The intercept of this model isn't directly interpretable because it gives the average width at a length of zero, which is impossible. In addition, both the intercept and simple effect of length represent the change in width for only one species, *virginica*. The treatment contrast in R estimates coefficients for $k - 1$ levels of a factor. In the simple effect of a factor each coefficient is the difference between the last level (estimated by the intercept), and the named level. In the above, `Species1` has sepals that are 2 mm narrower than *virginica* at a length of zero. The interaction coefficients
-such as `Sepal.Length:Species1` tell us how much the effect of Sepal.Length in *versicolor* changes from that in *setosa*. So every mm of sepal length in versicolor increases sepal width by $0.8 - 0.48 = 0.32$ mm. 
+```{r regTable, echo=FALSE}
+knitr::kable(tableout, caption = "Linear regressions of Sepal Width on species and Sepal Length for different parameterizations. The default treatment contrast has been changed to match the SAS default so that covariate labels match between the treatment and sum-to-zero contrasts.")
+```
+
+
+The intercept of the interaction model isn't directly interpretable because it gives the average width at a length of zero, which is impossible. In addition, both the intercept and simple effect of length represent the change in width for only one species, *virginica*. The treatment contrast in R estimates coefficients for $k - 1$ levels of a factor. In the simple effect of a factor each coefficient is the difference between the last level (estimated by the intercept), and the named level. In the above, `Speciessetosa` has sepals that are 2 mm narrower than *virginica* at a length of zero. The interaction coefficients
+such as `Sepal.Length:Speciessetosa` tell us how much the effect of Sepal.Length in *setosa* changes from that in *virginica*. So every mm of sepal length in *setosa* increases sepal width by $.23 + .57 = 0.8$ mm. 
 
 ```{r basePlot, fig.cap="Sepal Length against Sepal Width for three species of iris."}
 
@@ -105,12 +108,12 @@ base_iris <- ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width)) +
 nd <- expand.grid(Sepal.Length = seq(-1, 8, 0.1),
                   Species = factor(levels(iris$Species)))
 pred.0 <- augment(m0, newdata = nd)             
-base_iris + geom_line(aes(y = .fitted, linetype = Species), data = pred.0)
+base_iris + geom_line(aes(y = .fitted, linetype = Species), data = pred.0) + geom_vline(xintercept = mean(iris$Sepal.Length), color = "red", linetype  = 4)
 ```
 
-I did something rather silly in Figure \@ref(fig:basePlot) because I wanted to see where the curves cross x = 0. That is where the estimates for the intercept and simple effect of species are calculated. The intercept is negative, and the line for *setosa* crosses x = 0 well below y = 0. The simple effect estimates of Species are both positive, with *virginica* being larger, and indeed the line for *virginica* crosses x = 0 at the highest point. Similarly, the simple effect of length is the slope of the line for *setosa*, and it is larger than the slopes of the other two species because the estimated interactions are both negative. But not centering really makes things ugly for direct interpretation of the estimated coefficients. 
+I did something rather silly in Figure \@ref(fig:basePlot) because I wanted to see where the curves cross x = 0. That is where the estimates for the intercept and simple effect of species are calculated. The intercept is positive, and the line for *virginica* crosses x = 0 well above y = 0. The simple effect estimates of Species are both negative, with *setosa* being larger, and indeed the line for *setosa* crosses x = 0 at the lowest point. Similarly, the simple effect of length is the slope of the line for *virginica*, and it is smaller than the slopes of the other two species because the estimated interactions are both positive. But not centering really makes things ugly for direct interpretation of the estimated coefficients. 
 
-Now we repeat the analysis after centering sepal.length. Although the coefficients change because now the model estimates the differences between the species at the mean length, the t-statistics for the continuous covariate, including the interaction terms, do not change. The t-statistics for the intercept and simple effect of species do change. That's OK, because they are really testing something quite different from before.  
+Now we repeat the analysis after centering `sepal.length`. The estimates and the standard errors for the continuous covariate, including the interaction terms, do not change. The slopes of the three lines are not affected by centering the continuous variable. The estimates and standard errors for the intercept and simple effect of species do change. That's OK, because they are really testing something quite different from before. Now these coefficients are telling us what happens at the mean sepal length. Looking back at Figure \@ref(fig:basePlot), the mean is a bit less than 6 mm, *versicolor* is about the same size as *virginica*, while *setosa* is quite a bit bigger. And that's what the simple effects coefficients tell us in the centered model (2nd column of Table \@ref(tab:regTable)). The coefficient for *setosa* is large (relative to SE) and positive, while the coefficient for *versicolor* is small and negative.
 
 What happens if we use sum to zero contrasts for species? I can now directly interpret the intercept as the average width at the average length, averaged over species. Similarly the simple effect of length as the change in width averaged across species. This seems like a very useful set of coefficients to look at, particularly if my categorical covariate has many levels. 
 You might ask (I did), what do the categorical coefficients mean? They represent deviations from the mean intercept for each species. OK, you say (I did), then where's species *virginica*? After much head scratching, the answer is that it is the negative of the **sum** of the other two coefficients. 
