@@ -30,8 +30,9 @@ library(ggplot2)
 library(dplyr) #Stay in the tidyverse! 
 library(broom)
 #library(sjPlot)
+library(stargazer)
 library(pander)
-library(memisc)
+#library(memisc)
 ```
 
 Here is my summary of the pros and cons of centering drawn from those references above.
@@ -54,8 +55,10 @@ Here is my summary of the pros and cons of centering drawn from those references
 
 To make the discussion concrete, let me demonstrate with an example of the interaction between a continuous covariate and a categorical one. In the following I refer to the effect of individual covariates outside the interaction as the "simple effect" of that covariate.
 
-```{r , warning=FALSE}
+```{r , warning=FALSE, results = "asis"}
 data(iris)
+# flip the treatment contrast so coefficient labels match
+contrasts(iris$Species) <- contr.SAS(3)
 m0 <- lm(Sepal.Width~Sepal.Length*Species,data=iris)
 summary_m0 <- summary(m0)
 iris_centered <- iris %>% mutate(Sepal.Length=Sepal.Length - mean(Sepal.Length))
@@ -71,19 +74,26 @@ m4 <- lm(Sepal.Width~Sepal.Length + Species, data = iris_csz)
 summary_m4 <- summary(m4)
 
 
-mtable123 <- mtable('Interaction' = m0,
-            'Centered' = m1,
-            'Centered and \nSum to zero' = m2,
-            'Length Only' = m3,
-            'Length and \nSpecies' = m4, summary.stats = FALSE,
-            coef.style = "all.nostar")
+stargazer(m0, m1, m2, m3, m4,
+          title="Linear regressions of Sepal Width on species and Sepal Length for different parameterizations. The default treatment contrast has been changed to match the SAS default so that covariate labels match between the treatment and sum-to-zero contrasts.",
+          column.labels = c("Interaction", "Interaction and Centered", "Interaction, centered and sum-to-zero", "Length only", "Length and Species"),
+          intercept.bottom = FALSE, intercept.top = TRUE,
+          keep.stat = c("adj.rsq", "ser"),
+          align=TRUE,
+          type = "html",
+          style = "ajs" # "ajs"
+)
+#           summary.stats = FALSE,
+#            coef.style = "all.nostar")
+#write.mtable(mtable123, format = "LaTeX" )
 #sjt.lm(m0,m1)# You have to save the table in html format.
-pander(mtable123)
+#pander(mtable123)
 #htmltools::includeHTML("output.html")
+#knitr::kable(mtable123)
 ```
 
-The intercept of this model isn't directly interpretable because it gives the average width at a length of zero, which is impossible. In addition, both the intercept and simple effect of length represent the change in width for only one species, *setosa*. The default contrast in R estimates coefficients for $k - 1$ levels of a factor. In the simple effect of a factor each coefficient is the difference between the first level (estimated by the intercept), and the named level. In the above, `Speciesversicolor` has sepals that are 1.4 mm wider than *setosa*. The interaction coefficients
-such as `Sepal.Length:Speciesversicolor` tell us how much the effect of Sepal.Length in *versicolor* changes from that in *setosa*. So every mm of sepal length in versicolor increases sepal width by $0.8 - 0.48 = 0.32$ mm. 
+The intercept of this model isn't directly interpretable because it gives the average width at a length of zero, which is impossible. In addition, both the intercept and simple effect of length represent the change in width for only one species, *virginica*. The treatment contrast in R estimates coefficients for $k - 1$ levels of a factor. In the simple effect of a factor each coefficient is the difference between the last level (estimated by the intercept), and the named level. In the above, `Species1` has sepals that are 2 mm narrower than *virginica* at a length of zero. The interaction coefficients
+such as `Sepal.Length:Species1` tell us how much the effect of Sepal.Length in *versicolor* changes from that in *setosa*. So every mm of sepal length in versicolor increases sepal width by $0.8 - 0.48 = 0.32$ mm. 
 
 ```{r basePlot, fig.cap="Sepal Length against Sepal Width for three species of iris."}
 
