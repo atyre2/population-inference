@@ -118,9 +118,10 @@ Now we repeat the analysis after centering `sepal.length`. The estimates and the
 What happens if we use sum to zero contrasts for species? I can now directly interpret the intercept as the average width at the average length, averaged over species. Similarly the simple effect of length as the change in width averaged across species. This seems like a very useful set of coefficients to look at, particularly if my categorical covariate has many levels. 
 You might ask (I did), what do the categorical coefficients mean? They represent deviations from the mean intercept for each species. OK, you say (I did), then where's species *virginica*? After much head scratching, the answer is that it is the negative of the **sum** of the other two coefficients. 
 
-I just thought of something else. Are those "average" intercept and slope the same as what I would get if I only use `cSepal.Length`?
-Whoa! It is not the same, in fact it is radically different. Totally different conclusion about the "average" effect. 
-This is closer to the conclusion obtained with the interaction model. 
+I just thought of something else. Are those "average" intercept and slope the same as what I would get if I only use `Sepal.Length`?
+Whoa! It is not the same, in fact it is radically different. Totally different conclusion about the "average" effect. So, an "average" while admitting that species differ is very different from assuming there is no difference between species. That makes sense, I guess. 
+
+## Interpreting non-marginal effects
 
 I have seen assertions in some papers (particularly from social sciences), that using sum to zero contrasts (also called effects coding, I believe), allows the direct interpretation of lower order terms in an ANOVA table even in the presence of interactions. 
 
@@ -130,8 +131,53 @@ pander(anova(m2)) # doesn't matter which model I use
 
 If so, in this case I could say "Sepal Width differs significantly between species." I'm not sure I believe that. The ANOVA table is identical between all 3 models, whether I use sum-to-zero contrasts or not. Why should the interpretation differ if I just change the parameterization of the model? 
 
-Explaining treatment contrasts to students is a pain. I'm not sure that these are any easier. I have a few thoughts about the effects of sum-to-zero contrasts and model averaging, but that will have to wait for a different post. 
+# Population level inference: sum to zero vs. random effect. 
 
-[^allthecode]: All the code for this post, including that not shown, [can be found here](https://github.com/atyre2/atyre2.github.io/raw/master/_drafts/sum-to-zero-contrasts.Rmd).
+Deguines et al. [@Deguinesetal2017] published an interesting dataset of abundances and densities of different species on multiple plots in multiple years. The key question was how does density of each species respond to both precipitation and the presence or abundance of other species. Here I will focus on just one species and compare two different ways of getting at the precipitation response in an "average" plot.
+
+```{r example2setup, message=FALSE, fig.cap="Kangaroo rat density as a function of precipitation for 30 plots in 7 years."} 
+deguines <- read.csv("http://datadryad.org/bitstream/handle/10255/dryad.131841/Deguines_etal_JAE_carrizo.csv?sequence=1")
+ggplot(deguines, mapping = aes(x = Precip, y = Krats, color = plot_id)) + geom_point() + 
+  geom_line() + guides(color=FALSE) + xlab("Precipitation [mm]") + ylab("Kangaroo Rat Density")
+```
+
+Deguines et al. did a thorough job of evaluating the assumptions of the model estimated using `lme()`, so we will simply start with their top model, which had an interaction between precipitation and plant biomass, a random effect of plot identity, and allowed the variance to change between years. The only thing I will change is that I will center the two continuous variables to ease the interpretation of the population average effects. 
+
+```{r mixedModel}
+library(nlme)
+
+# centering
+deguines_c <- deguines %>% 
+  mutate(Precip = Precip - mean(Precip),
+         Plant_biomass= Plant_biomass - mean(Plant_biomass))
+
+# Specifying control values for lme fit:
+lmecontr_foc <- lmeControl(maxIter=50, msMaxIter=50) #the default
+
+mixedmod <- lme(Krats ~ Precip*Plant_biomass,
+                weights = varIdent(form = ~ 1 | fyear),
+                random = ~ 1|plot_id,
+                data=deguines_c, method = "REML", control=lmecontr_foc)
+summary(mixedmod)
+```
+
+So, there are $\approx 33$ Krats with average precipitation and plant biomass. At the average plant biomass, increasing precipitation increases density by about 1 Krat per mm. As biomass increases holding the average precipitation constant, the density of Krats goes *down*. That's interesting, because it is the opposite sign from the model estimated with the uncentered data! Regardless of centering, the effect of precipitation gets smaller (or even negative) with increasing plant biomass. Centering didn't change any of the model level inferential statistics, nor the variance estimates. It did reduce the correlations between the parameter estimates, which means the model was easier to fit. Centering seems like a universal good. 
+
+Now I will re-fit the model treating `plot_id` as a sum-to-zero contrast fixed effect. 
+
+```{r sz_model}
+contrasts(deguines_c$plot_id) <- contr.sum(30)
+szmodel <- lm(Krats ~ Precip*Plant_biomass + plot_id,
+                data=deguines_c)
+summary(szmodel)
+```
+
+Looking at the coefficients we are seeing a very similar interpretation emerging. 
+
+* how to compare these two models? 
+* what about making population average predictions from lm()?
+
+
+[^allthecode]: All the code for this post, including that not shown, [can be found here](https://github.com/atyre2/population-inference/raw/master/index.Rmd).
 
 [^CVpost]: This stuff first appeared [as a question on CrossValidated](http://stats.stackexchange.com/questions/188852/centering-in-the-presence-of-interactions-with-categorical-predictors), but received no attention. Then AJT made it into [a blog post](http://atyre2.github.io/2016/09/03/sum-to-zero-contrasts.html), where it still received no attention! Upping the ante here ...
