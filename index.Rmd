@@ -172,7 +172,7 @@ contrasts(deguines_c$plot_id) <- contr.sum(30)
 szmodel <- lm(Krats ~ Precip*Plant_biomass + plot_id,
                 data=deguines_c)
 sztable <- huxreg(szmodel)
-caption(sztable) <- "Table \\#tab:sztable : Regression output for the sum to zero model of Kangaroo Rat density."
+caption(sztable) <- "Table: \\#tab:sz_model Regression output for the sum to zero model of Kangaroo Rat density."
 sztable
 ```
 
@@ -215,7 +215,7 @@ ggplot(data = plot_id_effects,
   ylab("Mixed model random effects estimates")
 ```
 
-There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table \@ref(tab:sztable). 
+There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table \@ref(tab:sz_model). 
 
 * what about making population average predictions from lm()?
 
