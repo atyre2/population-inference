@@ -2,6 +2,7 @@
 title: "Want population level inferences? Use sum-to-zero contrasts"
 author: "Andrew J. Tyre & Trevor Hefley"
 date: "`r format( Sys.Date(), '%B %d, %Y' )`"
+site: "bookdown::bookdown_site"
 output:
   bookdown::html_document2:
     theme: lumen
