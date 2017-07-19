@@ -169,12 +169,50 @@ Now I will re-fit the model treating `plot_id` as a sum-to-zero contrast fixed e
 contrasts(deguines_c$plot_id) <- contr.sum(30)
 szmodel <- lm(Krats ~ Precip*Plant_biomass + plot_id,
                 data=deguines_c)
-summary(szmodel)
+huxtable::huxreg(szmodel)
 ```
 
-Looking at the coefficients we are seeing a very similar interpretation emerging. 
+Looking at the coefficients we are seeing a very similar interpretation emerging. If we plot the random effect estimates against the plot coefficients we see there is a close correspondence (Figure \@ref(fig:ranefvsfixef)), but in general the random effects estimates are smaller. This is "shrinkage" towards zero, caused by assuming the random effects come from a normal distribution. 
 
-* how to compare these two models? 
+```{r ranefvsfixef, fig.cap="Random effects of each plot versus the estimated fixed effect for each plot. Solid black line is the 1:1 line."}
+mixedmod_effects <- tidy(mixedmod, effects="fixed")
+plot_id_mm <- ranef(mixedmod)
+# promote rownames to a column
+plot_id_mm <- mutate(plot_id_mm, 
+                     term = "(Intercept)",
+                     group = "plot_id",
+                     level = rownames(plot_id_mm)) %>%
+  rename(estimate = `(Intercept)`)
+szmodel_effects <- tidy(szmodel)
+# need to add group and level to fixed_effects, and convert to estimates for all groups
+# extract sz coefs into seperate data frame
+plot_id_sz <- filter(szmodel_effects, startsWith(szmodel_effects$term,"plot_id"))
+szmodel_effects <- filter(szmodel_effects, !startsWith(szmodel_effects$term,"plot_id"))
+# add group and level columns
+contrmatrix <- contrasts(deguines_c$plot_id)
+# add empty row see https://stackoverflow.com/questions/41151350/append-empty-row-to-a-dataframe
+plot_id_sz[nrow(plot_id_sz)+1,] <- NA
+plot_id_sz <- mutate(plot_id_sz, 
+                     term = "(Intercept)",
+                     group = "plot_id",
+                     level = rownames(contrmatrix))
+# calculate estimated coef for final row 
+plot_id_sz[nrow(plot_id_sz), "estimate"] <- -sum(plot_id_sz$estimate[-nrow(plot_id_sz)])
+# SE involves the estimated vcov matrix ... leave that out for now.
+names(plot_id_mm) <- paste0(names(plot_id_mm),".mm")
+names(plot_id_sz) <- paste0(names(plot_id_sz),".sz")
+plot_id_effects <- bind_cols(plot_id_mm, plot_id_sz)
+ggplot(data = plot_id_effects, 
+       mapping = aes(x = estimate.sz, y = estimate.mm)) + 
+  geom_point() + 
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_smooth(method = "lm") + 
+  xlab("Sum to zero estimates") + 
+  ylab("Mixed model random effects estimates")
+```
+
+There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table 
+
 * what about making population average predictions from lm()?
 
 
