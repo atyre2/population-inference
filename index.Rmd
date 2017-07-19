@@ -32,6 +32,7 @@ library(broom)
 #library(sjPlot)
 library(stargazer)
 library(pander)
+library(huxtable)
 #library(memisc)
 ```
 
@@ -169,7 +170,9 @@ Now I will re-fit the model treating `plot_id` as a sum-to-zero contrast fixed e
 contrasts(deguines_c$plot_id) <- contr.sum(30)
 szmodel <- lm(Krats ~ Precip*Plant_biomass + plot_id,
                 data=deguines_c)
-huxtable::huxreg(szmodel)
+sztable <- huxreg(szmodel)
+caption(sztable) <- "Table \\#tab:sztable : Regression output for the sum to zero model of Kangaroo Rat density."
+sztable
 ```
 
 Looking at the coefficients we are seeing a very similar interpretation emerging. If we plot the random effect estimates against the plot coefficients we see there is a close correspondence (Figure \@ref(fig:ranefvsfixef)), but in general the random effects estimates are smaller. This is "shrinkage" towards zero, caused by assuming the random effects come from a normal distribution. 
@@ -211,7 +214,7 @@ ggplot(data = plot_id_effects,
   ylab("Mixed model random effects estimates")
 ```
 
-There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table 
+There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table \@ref(tab:sztable). 
 
 * what about making population average predictions from lm()?
 
