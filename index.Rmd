@@ -31,8 +31,8 @@ library(ggplot2)
 library(dplyr) #Stay in the tidyverse! 
 library(broom)
 #library(sjPlot)
-library(stargazer)
-library(pander)
+#library(stargazer)
+#library(pander)
 library(huxtable)
 #library(memisc)
 ```
@@ -80,22 +80,23 @@ summary_m3 <- summary(m3)
 m4 <- lm(Sepal.Width~Sepal.Length + Species, data = iris_csz)
 summary_m4 <- summary(m4)
 
+tableout <- huxreg('Interaction' = m0, 
+                   'Interaction and centered' = m1, 
+                   'Interaction, centered, and sum-to-zero' = m2, 
+                   'Length only' = m3, 
+                   'Length and Species' = m4)
 
-tableout <- stargazer(m0, m1, m2, m3, m4,
-          type = "html",
-          column.labels = c("Interaction", "Interaction and Centered", "Interaction, centered and sum-to-zero", "Length only", "Length and Species"),
-          intercept.bottom = FALSE, intercept.top = TRUE,
-          keep.stat = c("adj.rsq", "ser"),
-          align=TRUE,
-          style = "ajs" # "ajs"
-)
+caption(tableout) <- "(#tab:regTable) Linear regressions of Sepal Width on species and Sepal Length for different parameterizations. The default treatment contrast has been changed to match the SAS default so that covariate labels match between the treatment and sum-to-zero contrasts."
+# tableout <- stargazer(m0, m1, m2, m3, m4,
+#           type = "html",
+#           column.labels = c("Interaction", "Interaction and Centered", "Interaction, centered and sum-to-zero", "Length only", "Length and Species"),
+#           intercept.bottom = FALSE, intercept.top = TRUE,
+#           keep.stat = c("adj.rsq", "ser"),
+#           align=TRUE,
+#           style = "ajs" # "ajs"
+# )
 
 ```
-
-```{r regTable, echo=FALSE}
-knitr::kable(tableout, caption = "Linear regressions of Sepal Width on species and Sepal Length for different parameterizations. The default treatment contrast has been changed to match the SAS default so that covariate labels match between the treatment and sum-to-zero contrasts.")
-```
-
 
 The intercept of the interaction model isn't directly interpretable because it gives the average width at a length of zero, which is impossible. In addition, both the intercept and simple effect of length represent the change in width for only one species, *virginica*. The treatment contrast in R estimates coefficients for $k - 1$ levels of a factor. In the simple effect of a factor each coefficient is the difference between the last level (estimated by the intercept), and the named level. In the above, `Speciessetosa` has sepals that are 2 mm narrower than *virginica* at a length of zero. The interaction coefficients
 such as `Sepal.Length:Speciessetosa` tell us how much the effect of Sepal.Length in *setosa* changes from that in *virginica*. So every mm of sepal length in *setosa* increases sepal width by $.23 + .57 = 0.8$ mm. 
@@ -127,11 +128,16 @@ Whoa! It is not the same, in fact it is radically different. Totally different c
 
 I have seen assertions in some papers (particularly from social sciences), that using sum to zero contrasts (also called effects coding, I believe), allows the direct interpretation of lower order terms in an ANOVA table even in the presence of interactions. 
 
-```{r}
-pander(anova(m2)) # doesn't matter which model I use
+```{r ANOVAtable}
+at <- as.data.frame(anova(m2)) # doesn't matter which model I use
+at <- hux(at)
+at <- add_rownames(at, '')
+at <- add_colnames(at)
+caption(at) <- "(#tab:ANOVAtable) Analysis of variance table for model M2, with continuous variable centered and sum to zero categorical variable."
+at
 ```
 
-If so, in this case I could say "Sepal Width differs significantly between species." I'm not sure I believe that. The ANOVA table is identical between all 3 models, whether I use sum-to-zero contrasts or not. Why should the interpretation differ if I just change the parameterization of the model? 
+If so, in this case I could say "Sepal Width differs significantly between species." I'm not sure I believe that. Table \@ref(tab:ANOVAtable) is identical between all 3 models, whether I use sum-to-zero contrasts or not. Why should the interpretation differ if I just change the parameterization of the model? 
 
 # Population level inference: sum to zero vs. random effect. 
 
@@ -172,7 +178,7 @@ contrasts(deguines_c$plot_id) <- contr.sum(30)
 szmodel <- lm(Krats ~ Precip*Plant_biomass + plot_id,
                 data=deguines_c)
 sztable <- huxreg(szmodel)
-caption(sztable) <- "Table: \\#tab:sz_model Regression output for the sum to zero model of Kangaroo Rat density."
+caption(sztable) <- "(#tab:sz_model) Regression output for the sum to zero model of Kangaroo Rat density."
 sztable
 ```
 
