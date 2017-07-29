@@ -139,9 +139,11 @@ at
 
 If so, in this case I could say "Sepal Width differs significantly between species." I'm not sure I believe that. Table \@ref(tab:ANOVAtable) is identical between all 3 models, whether I use sum-to-zero contrasts or not. Why should the interpretation differ if I just change the parameterization of the model? 
 
+This is related to how using sum-to-zero contrasts changes the interpretation of the simple effects coefficients. When using a treatment contrast and a model without an interaction, the coefficient for Sepal Width is the change in Sepal Length per unit change in Sepal Width, period. When the species interaction is added the interpretation changes to Change in Sepal Length per unit change in Sepal Width for species Setosa. With a sum-to-zero contrast in place, the interpretation of the simple effect of Sepal Width does not change. In models with and without the interaction it is the change in sepal length for a unit change in sepal width for all plants, irrespective of species. 
+
 # Population level inference: sum to zero vs. random effect. 
 
-Deguines et al. [@Deguinesetal2017] published an interesting dataset of abundances and densities of different species on multiple plots in multiple years. The key question was how does density of each species respond to both precipitation and the presence or abundance of other species. Here I will focus on just one species and compare two different ways of getting at the precipitation response in an "average" plot.
+Deguines et al. [-@Deguinesetal2017] published an interesting dataset of abundances and densities of different species on multiple plots in multiple years. The key question was how does density of each species respond to both precipitation and the presence or abundance of other species. Here I will focus on just one species and compare two different ways of getting at the precipitation response in an "average" plot.
 
 ```{r example2setup, message=FALSE, fig.cap="Kangaroo rat density as a function of precipitation for 30 plots in 7 years."} 
 deguines <- read.csv("http://datadryad.org/bitstream/handle/10255/dryad.131841/Deguines_etal_JAE_carrizo.csv?sequence=1")
