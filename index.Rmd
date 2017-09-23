@@ -29,6 +29,7 @@ More accurately, should I tell my students in Ecological Statistics to use them?
 knitr::opts_chunk$set(tidy=TRUE)
 library(ggplot2)
 library(dplyr) #Stay in the tidyverse! 
+library(tidyr)
 library(broom)
 #library(sjPlot)
 #library(stargazer)
@@ -175,12 +176,12 @@ So, there are $\approx 33$ Krats with average precipitation and plant biomass. A
 
 Now I will re-fit the model treating `plot_id` as a sum-to-zero contrast fixed effect. 
 
-```{r sz_model}
+```{r sz-model}
 contrasts(deguines_c$plot_id) <- contr.sum(30)
 szmodel <- lm(Krats ~ Precip*Plant_biomass + plot_id,
                 data=deguines_c)
 sztable <- huxreg(szmodel)
-caption(sztable) <- "(#tab:sz_model) Regression output for the sum to zero model of Kangaroo Rat density."
+caption(sztable) <- "(#tab:sz-model) Regression output for the sum to zero model of Kangaroo Rat density."
 sztable
 ```
 
@@ -223,9 +224,21 @@ ggplot(data = plot_id_effects,
   ylab("Mixed model random effects estimates")
 ```
 
-There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table \@ref(tab:sz_model). 
+There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table \@ref(tab:sz-model). 
 
-* what about making population average predictions from lm()?
+# Making population average predictions
+
+Often we want to make predictions about the next plot observed, which can be done in a mixed model context, although statisticians disagree on which variances to include in such predictions. It isn't immediately obvious how to make such predictions from a model with sum-to-zero contrasts. We could use a truncated version of the design matrix, just the columns from the population level covariates, but that would leave out the variance associated with different plots. Instead, we could make predictions from *all* plots, and then average those predictions. The variance of the predicted values would be averaged as well, and we could include a component that accounts for the between plot variation by using the same trick as the unconditional variance in AIC based model averaging.
+
+
+```{r population-predictions}
+
+nd <- crossing(Precip = seq(min(deguines_c$Precip),max(deguines_c$Precip), length.out = 50),
+         Plant_biomass = seq(min(deguines_c$Plant_biomass),max(deguines_c$Plant_biomass), length.out = 50),
+         plot_id = C(factor(1:30),"contr.sum"))
+
+augment(szmodel, newdata=nd)
+```
 
 
 [^allthecode]: All the code for this post, including that not shown, [can be found here](https://github.com/atyre2/population-inference/raw/master/index.Rmd).
