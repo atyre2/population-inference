@@ -255,6 +255,12 @@ ggplot(predavg, aes(x=Precip)) +
 
 Rough 95% confidence limits for the population level prediction include all the plot level predictions (Figure \@ref(fig:population-predictions)).
 
+* How does this variance compare with the between plot variance in mixed model?
+* Make the same plot using the mixed model?
+* change axes back to original data
+* add raw observations to plot? 
+* fix panel headings
+
 [^allthecode]: All the code for this post, including that not shown, [can be found here](https://github.com/atyre2/population-inference/raw/master/index.Rmd).
 
 [^CVpost]: This stuff first appeared [as a question on CrossValidated](http://stats.stackexchange.com/questions/188852/centering-in-the-presence-of-interactions-with-categorical-predictors), but received no attention. Then AJT made it into [a blog post](http://atyre2.github.io/2016/09/03/sum-to-zero-contrasts.html), where it still received no attention! Upping the ante here ...
