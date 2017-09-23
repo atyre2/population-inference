@@ -231,15 +231,29 @@ There is another thing that is easy to do with the sum to zero estimates that is
 Often we want to make predictions about the next plot observed, which can be done in a mixed model context, although statisticians disagree on which variances to include in such predictions. It isn't immediately obvious how to make such predictions from a model with sum-to-zero contrasts. We could use a truncated version of the design matrix, just the columns from the population level covariates, but that would leave out the variance associated with different plots. Instead, we could make predictions from *all* plots, and then average those predictions. The variance of the predicted values would be averaged as well, and we could include a component that accounts for the between plot variation by using the same trick as the unconditional variance in AIC based model averaging.
 
 
-```{r population-predictions}
+```{r population-predictions, fig.cap = "Kangaroo rats increase with increasing precipitation, but the effect decreases with increasing plant biomass. The heavy black line is the population average prediction, each of the light grey lines shows the prediction for a single plot. The solid ribbon shows approximate 95% confidence limits on the population average prediction."}
 
 nd <- crossing(Precip = seq(min(deguines_c$Precip),max(deguines_c$Precip), length.out = 50),
-         Plant_biomass = seq(min(deguines_c$Plant_biomass),max(deguines_c$Plant_biomass), length.out = 50),
-         plot_id = C(factor(1:30),"contr.sum"))
+         Plant_biomass = quantile(deguines_c$Plant_biomass),
+         plot_id = levels(deguines_c$plot_id))
 
-augment(szmodel, newdata=nd)
+preddata <- augment(szmodel, newdata=nd)
+predavg <- preddata %>%
+  group_by(Plant_biomass, Precip) %>%
+  mutate(var_fitted = .se.fit^2) %>%
+  summarize(Krats = mean(.fitted),
+            var_Krats = sum(var_fitted + (.fitted - Krats)^2)/n(),
+            se_Krats = sqrt(var_Krats))
+ggplot(predavg, aes(x=Precip)) +
+  geom_line(aes(y = Krats), size = 2) + 
+  geom_ribbon(aes(ymin = Krats - 1.96*se_Krats,
+                  ymax = Krats + 1.96*se_Krats), alpha = 0.2) + 
+  facet_wrap(~Plant_biomass) + 
+  geom_line(data = preddata, 
+            mapping = aes(y=.fitted, group=plot_id), alpha = 0.2)
 ```
 
+Rough 95% confidence limits for the population level prediction include all the plot level predictions (Figure \@ref(fig:population-predictions)).
 
 [^allthecode]: All the code for this post, including that not shown, [can be found here](https://github.com/atyre2/population-inference/raw/master/index.Rmd).
 
