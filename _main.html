@@ -607,10 +607,10 @@ mixedmod &lt;-<span class="st"> </span><span class="kw">lme</span>(Krats ~<span 
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">contrasts</span>(deguines_c$plot_id) &lt;-<span class="st"> </span><span class="kw">contr.sum</span>(<span class="dv">30</span>)
 szmodel &lt;-<span class="st"> </span><span class="kw">lm</span>(Krats ~<span class="st"> </span>Precip *<span class="st"> </span>Plant_biomass +<span class="st"> </span>plot_id, <span class="dt">data =</span> deguines_c)
 sztable &lt;-<span class="st"> </span><span class="kw">huxreg</span>(szmodel)
-<span class="kw">caption</span>(sztable) &lt;-<span class="st"> &quot;(#tab:sz_model) Regression output for the sum to zero model of Kangaroo Rat density.&quot;</span>
+<span class="kw">caption</span>(sztable) &lt;-<span class="st"> &quot;(#tab:szmodel) Regression output for the sum to zero model of Kangaroo Rat density.&quot;</span>
 sztable</code></pre></div>
 <table class="huxtable" style="border-collapse: collapse; width: 50%; margin-left: auto; margin-right: auto;">
-<caption style="caption-side:top; text-align:center">(#tab:sz_model) Regression output for the sum to zero model of Kangaroo Rat density.</caption><col style="width: NA;"><col style="width: NA;"><tr>
+<caption style="caption-side:top; text-align:center"><span id="tab:szmodel">Table 3: </span> Regression output for the sum to zero model of Kangaroo Rat density.</caption><col style="width: NA;"><col style="width: NA;"><tr>
   <td  style="vertical-align: top; text-align: center; white-space: nowrap; border-width:0px 0px 1px 0px; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "></td>
   <td  style="vertical-align: top; text-align: center; white-space: nowrap; border-width:0px 0px 1px 0px; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">(1)</td>
 </tr>
@@ -932,7 +932,7 @@ plot_id_effects &lt;-<span class="st"> </span><span class="kw">bind_cols</span>(
 Figure 3: Random effects of each plot versus the estimated fixed effect for each plot. Solid black line is the 1:1 line.
 </p>
 </div>
-<p>There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table @ref(tab:sz_model).</p>
+<p>There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table <a href="#tab:szmodel">3</a>.</p>
 <ul>
 <li>what about making population average predictions from lm()?</li>
 </ul>

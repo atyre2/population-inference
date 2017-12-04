@@ -175,12 +175,12 @@ So, there are $\approx 33$ Krats with average precipitation and plant biomass. A
 
 Now I will re-fit the model treating `plot_id` as a sum-to-zero contrast fixed effect. 
 
-```{r sz_model}
+```{r szmodel}
 contrasts(deguines_c$plot_id) <- contr.sum(30)
 szmodel <- lm(Krats ~ Precip*Plant_biomass + plot_id,
                 data=deguines_c)
 sztable <- huxreg(szmodel)
-caption(sztable) <- "(#tab:sz_model) Regression output for the sum to zero model of Kangaroo Rat density."
+caption(sztable) <- "(#tab:szmodel) Regression output for the sum to zero model of Kangaroo Rat density."
 sztable
 ```
 
@@ -223,7 +223,7 @@ ggplot(data = plot_id_effects,
   ylab("Mixed model random effects estimates")
 ```
 
-There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table \@ref(tab:sz_model). 
+There is another thing that is easy to do with the sum to zero estimates that is harder with the mixed model. We can ask if each individual plot is different from the population average! That is the p value in Table \@ref(tab:szmodel). 
 
 * what about making population average predictions from lm()?
 
